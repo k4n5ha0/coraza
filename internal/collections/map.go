@@ -45,7 +45,7 @@ func (c *Map) Keys() []string {
 		return nil
 	}
 
-	var keys = make(([]string), 0, len(c.data))
+	var keys = make([]string, 0, len(c.data))
 	for k := range c.data {
 		keys = append(keys, k)
 	}

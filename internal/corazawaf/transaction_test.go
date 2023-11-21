@@ -5,6 +5,7 @@ package corazawaf
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -1590,5 +1591,48 @@ func TestForceRequestBodyOverride(t *testing.T) {
 
 	if err := tx.Close(); err != nil {
 		t.Fatalf("failed to close transaction: %s", err.Error())
+	}
+}
+
+func TestCloseFails(t *testing.T) {
+	waf := NewWAF()
+	tx := waf.NewTransaction()
+	tx.Variables().FilesTmpContent().Set("foo", []string{"unexisting"})
+	if err := tx.Close(); err == nil {
+		t.Fatalf("expected error when closing transaction")
+	}
+}
+
+func TestJoinErrors(t *testing.T) {
+	type test struct {
+		name     string
+		errors   []error
+		expected string
+	}
+
+	tests := []test{
+		{
+			name:     "empty",
+			errors:   []error{},
+			expected: "",
+		},
+		{
+			name:     "single",
+			errors:   []error{errors.New("foo")},
+			expected: "foo",
+		},
+		{
+			name:     "multiple",
+			errors:   []error{errors.New("foo"), errors.New("bar")},
+			expected: "- foo\n- bar",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if have := joinErrors(tc.errors...); have != tc.expected {
+				t.Fatalf("unexpected result, want %q, have %q", tc.expected, have)
+			}
+		})
 	}
 }

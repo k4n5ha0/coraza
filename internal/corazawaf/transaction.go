@@ -1460,6 +1460,7 @@ func (tx *Transaction) Close() error {
 	}
 
 	if environment.HasAccessToFS {
+		fmt.Println(tx.variables.filesTmpContent.Keys())
 		for _, k := range tx.variables.filesTmpContent.Keys() {
 			for _, tmpContent := range tx.variables.filesTmpContent.Get(k) {
 				if err := os.Remove(tmpContent); err != nil {
@@ -1485,7 +1486,29 @@ func (tx *Transaction) Close() error {
 		return nil
 	}
 
-	return fmt.Errorf("transaction close failed: %v", errors.Join(errs...))
+	return fmt.Errorf("closing transaction: %s", joinErrors(errs...))
+}
+
+func joinErrors(errs ...error) string {
+	if len(errs) == 0 {
+		return ""
+	}
+
+	if len(errs) == 1 {
+		return errs[0].Error()
+	}
+
+	res := strings.Builder{}
+	for k, err := range errs {
+		if k > 0 {
+			res.WriteByte('\n')
+		}
+		res.WriteByte('-')
+		res.WriteByte(' ')
+		res.WriteString(err.Error())
+	}
+
+	return res.String()
 }
 
 // String will return a string with the transaction debug information
