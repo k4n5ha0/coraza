@@ -23,6 +23,7 @@ import (
 	"github.com/corazawaf/coraza/v3/internal/auditlog"
 	"github.com/corazawaf/coraza/v3/internal/bodyprocessors"
 	"github.com/corazawaf/coraza/v3/internal/collections"
+	"github.com/corazawaf/coraza/v3/internal/cookies"
 	"github.com/corazawaf/coraza/v3/internal/corazarules"
 	"github.com/corazawaf/coraza/v3/internal/corazatypes"
 	"github.com/corazawaf/coraza/v3/internal/environment"
@@ -322,8 +323,21 @@ func (tx *Transaction) AddRequestHeader(key string, value string) {
 			tx.variables.reqbodyProcessor.Set("MULTIPART")
 		}
 	case "cookie":
-		// Cookies use the same syntax as GET params but with semicolon (;) separator
-		values := urlutil.ParseQuery(value, ';')
+		// 4.2.  Cookie
+		//
+		// 4.2.1.  Syntax
+		//
+		//   The user agent sends stored cookies to the origin server in the
+		//   Cookie header.  If the server conforms to the requirements in
+		//   Section 4.1 (and the user agent conforms to the requirements in
+		//   Section 5), the user agent will send a Cookie header that conforms to
+		//   the following grammar:
+		//
+		//   cookie-header = "Cookie:" OWS cookie-string OWS
+		//   cookie-string = cookie-pair *( ";" SP cookie-pair )
+		//
+		// There is no URL Decode performed no the cookies
+		values := cookies.ParseCookies(value)
 		for k, vr := range values {
 			for _, v := range vr {
 				tx.variables.requestCookies.Add(k, v)
@@ -537,7 +551,7 @@ func (tx *Transaction) GetStopWatch() string {
 }
 
 // GetField Retrieve data from collections applying exceptions
-// In future releases we may remove de exceptions slice and
+// In future releases we may remove the exceptions slice and
 // make it easier to use
 func (tx *Transaction) GetField(rv ruleVariableParams) []types.MatchData {
 	col := tx.Collection(rv.Variable)
